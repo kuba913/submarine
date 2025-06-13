@@ -1,18 +1,38 @@
-# Base class for all ships
-class Ship:
+import math
+
+
+class Entity:
     id: int
     type: str
     name: str
 
-    # Positional attributes (updated every game tick)
+    # Positional attributes (updated every tick)
     x: int
     y: int
     heading: int
     speed: int
 
+    def __init__(self, id: int, type: str, name: str, x: int, y: int, heading: int, speed: int):
+        self.id = id
+        self.type = type
+        self.name = name
+        self.x = x
+        self.y = y
+        self.heading = (360 - heading + 90) % 360
+        self.speed = speed
+
+    def tick_update(self):
+        # Position
+        self.x += self.speed * math.cos(math.radians(self.heading))
+        self.y += self.speed * math.sin(math.radians(self.heading))
+
+    def __str__(self):
+        return f"{self.type} {self.name} at ({self.x}, {self.y}) heading {self.heading - 90}° with speed {self.speed}"
+
+# Base class for all ships
+class Ship(Entity):
     # Control attributes
-    throttle: int              # How fast the ship is accelerating or decelerating
-    throttle_target: int       # Target throttle the ship is trying to reach
+    throttle: int              # How fast the ship is accelerating or decelerating (-100 to 100)
     steer: int                 # How much the ship is turning
     steer_target: int          # Target steer angle the ship is trying to reach
 
@@ -34,23 +54,112 @@ class Ship:
     noise: int                      # Noise level of the ship, affects detection by enemies
     visibility: int
 
+    def tick_update(self):
+        # Position and heading
+        if self.speed >= 0:
+            self.x += (self.speed + (self.length * 1/6 * self.speed/self.speed_max)) * math.cos(math.radians(self.heading))
+            self.y += (self.speed + (self.length * 1/6 * self.speed/self.speed_max)) * math.sin(math.radians(self.heading))
+        else:
+            self.x += (self.speed - (self.length * 1/6 * self.speed/self.speed_min)) * math.cos(math.radians(self.heading))
+            self.y += (self.speed - (self.length * 1/6 * self.speed/self.speed_min)) * math.sin(math.radians(self.heading))
+        
+        self.heading = (360 + self.heading + self.steer) % 360
+
+        if self.speed >= 0:
+            self.x += -(self.length * 1/6 * self.speed/self.speed_max) * math.cos(math.radians(self.heading))
+            self.y += -(self.length * 1/6 * self.speed/self.speed_max) * math.sin(math.radians(self.heading))
+        else:
+            self.x += (self.length * 1/6 * self.speed/self.speed_min) * math.cos(math.radians(self.heading))
+            self.y += (self.length * 1/6 * self.speed/self.speed_min) * math.sin(math.radians(self.heading))
+            
+        # Throttle and speed
+        if self.throttle > 0:
+            if self.throttle > self.speed/self.speed_max * 100:
+                self.speed += self.speed_acceleration * (1.5 - self.speed/self.speed_max)
+            elif self.throttle < self.speed/self.speed_min * 100:
+                self.speed += self.speed_deceleration * (1.5 - self.speed/self.speed_min)
+        elif self.throttle < 0:
+            if self.throttle < self.speed/self.speed_min * 100:
+                self.speed -= self.speed_deceleration * (1.5 - self.speed/self.speed_min)
+            elif self.throttle > self.speed/self.speed_max * 100:
+                self.speed -= self.speed_acceleration * (1.5 - self.speed/self.speed_max)
+
+        # Steer and heading
+        if self.alive:
+            if self.steer_target > self.steer:
+                self.steer += self.steer_speed
+                self.steer = min(self.steer, self.steer_target)
+            elif self.steer_target < self.steer:
+                self.steer -= self.steer_speed
+                self.steer = max(self.steer, self.steer_target)
+
+        # Visiblity and noise
+        self.visibility = self.base_visibility * ((abs(self.speed) / self.speed_max) / 2 + 0.5)
+        self.noise = 10 + abs(self.throttle)
+
+        # Health
+        if self.alive and self.health <= 0:
+            self.alive = False
+        if not self.alive:
+            self.throttle = 0
+    
+    def take_damage(self, damage: int):
+        self.health -= damage
+        self.health = max(self.health, 0)
+        
+        if self.health <= 0:
+            self.alive = False
+            self.throttle = 0
 
 # Class for the player-controlled ship
 class playerShip(Ship):
     # Control attributes
     periscope_angle: int            # Angle of the periscope, used for visual detection
 
-
     # Technical attributes (dont change during gameplay)
     battery_max: int                # Maximum battery level of the player ship
     battery_depletion_rate: int     # Rate at which the battery depletes, affects submerging and speed
     battery_recharge_rate: int      # Rate at which the battery recharges when surfaced
+    underwater_speed_mult: float      # Multiplier for speed when underwater, affects how fast the player ship can move when submerged
 
     # Status attributes
     depth: str                      # Current depth of the player ship, affects visibility, noise and functionality, e.g., "surface", "periscope", "deep"
     battery: int                    # Battery level of the player ship, required for submerging
     periscope_active: bool          # Whether the periscope is currently active, affects visibility
 
+    def tick_update(self):
+        # Speed
+        temp_speed = self.speed_max
+        if self.depth != "surface":
+            self.speed_max = self.speed_max * self.underwater_speed_mult
+
+        # Battery
+        if self.depth == "periscope" or self.depth == "deep":
+            self.battery -= self.battery_depletion_rate
+        elif self.depth == "surface":
+            self.battery += self.battery_recharge_rate
+        self.battery = max(0, min(self.battery, self.battery_max))
+        if self.battery <= 0:
+            self.depth = "surface"
+            self.periscope_active = False
+
+        super().tick_update(self)
+
+        # Periscope# Visiblity and noise
+        match self.depth:
+            case "surface":
+                self.visibility = self.base_visibility * ((abs(self.speed) / self.speed_max) / 2 + 0.5)
+            case "periscope":
+                if self.periscope_active:
+                    self.visibility = self.base_visibility * ((abs(self.speed) / self.speed_max) / 2 + 0.5) * 0.2
+                else:
+                    self.visibility = self.base_visibility * ((abs(self.speed) / self.speed_max) / 2 + 0.5) * 0.01
+            case "deep":
+                self.visibility = 0
+                self.noise = self.noise * 0.5  # Reduced noise when deep
+
+        # Speed
+        self.speed_max = temp_speed
 
 # Class for the torpedoes fired by the player
 class torpedo(Ship):
@@ -60,6 +169,20 @@ class torpedo(Ship):
     # Control attributes
     targetAngle: int                # Angle towards which the torpedo is heading
     targetSpeed: int                # Speed at which the torpedo is moving
+
+    def tick_update(self):
+        if self.targetAngle - self.heading < -180 or self.targetAngle - self.heading > 180:
+            if self.targetAngle - self.heading < -180:
+                self.steer_target = ((self.targetAngle + 360) - self.heading)
+            else:
+                self.steer_target = ((self.targetAngle - 360) - self.heading)
+        else:
+            self.steer_target = (self.targetAngle - self.heading)
+        if self.steer_target > self.steer_max:
+            self.steer_target = self.steer_max
+        elif self.steer_target < -self.steer_max:
+            self.steer_target = -self.steer_max
+        super().tick_update(self)
 
 # Base class for enemy ships
 class enemyShip(Ship):
@@ -82,6 +205,7 @@ class enemyShip(Ship):
     spottedPlayer: bool             # Whether the enemy ship has spotted the player ship
     spottingAccuracy: int           # Accuracy of information about the player
     lastKnownPosition: tuple[int, int]  # Last known position of the player ship
+    lastKnownTime: int              # Last time the enemy ship spotted the player ship
     lastKnownHeading: int           # Last known heading of the player ship
     lastKnownSpeed: int             # Last known speed of the player ship
         # Defensive

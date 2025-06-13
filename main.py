@@ -1,4 +1,8 @@
 import pygame
+import level
+
+# Debug settings
+debug = True
 
 # Initialize Pygame
 pygame.init()
@@ -7,10 +11,9 @@ screen = pygame.display.set_mode((400, 300))
 pygame.display.set_caption("Submarine")
 
 # Game loop
-gamestate = "menu"
+gamestate = "game"
 running = True
 while running:
-
     # Game logic
     match gamestate:
         case "menu":
@@ -18,6 +21,7 @@ while running:
             pass
         case "game":
             # Game logic
+            level.updateLevel(debug)  # Update the level and all entities
             pass
 
     # Event handling
@@ -42,7 +46,7 @@ while running:
             pass
 
     # Display update
-    clock.tick(60)
+    clock.tick(1)
     pygame.display.update()
 
 # Quit Pygame
