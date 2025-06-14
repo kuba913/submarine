@@ -46,7 +46,7 @@ while running:
             pass
 
     # Display update
-    clock.tick(1)
+    clock.tick(12)
     pygame.display.update()
 
 # Quit Pygame

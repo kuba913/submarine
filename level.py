@@ -6,7 +6,9 @@ entityList = [testEntity] # List of ships in level
 
 # Tick the level, updating all entities
 def updateLevel(debug):
+    if debug:
+        print("Updating level with entities:")
+        for entity in entityList:
+            print(entity)
     for entity in entityList:
         entity.tick_update()
-        if debug:
-            print(entity)
