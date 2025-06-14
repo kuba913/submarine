@@ -1,6 +1,15 @@
 import math
 from random import random
 
+# Predefined ship statistics
+# 0 - Length, 1 - Width, 2 - Health, 3 - Speed Max, 4 - Speed Min, # 5 - Speed Acceleration, 6 - Speed Deceleration, 7 - Steer Max, 8 - Steer Speed, 9 - Base Visibility
+torpedoStat = [5, 1, 100, 25, 1, 5, 1, 1, 1, 500]  # Example stats for torpedo
+playerShipStat = [67, 6, 1000, 9, 3, 1, 1, 15, 3, 3000]  # Example stats for player ship
+destroyerShipStat = [] # Example stats for destroyer
+transportShipStat = [] # Example stats for transport ship
+# 0 - Battery Max, 1 - Battery Depletion Rate, 2 - Battery Recharge Rate, 3 - Underwater Speed Multiplier 4 - Torpedo Tube Amount 5 - Torpedo Reload Time
+playerSubmarineStat = [1000, 1, 2, 0.5, 4, 60]  # Example stats for player submarine
+
 # Helper functions
 def point_in_rect(px: int, py: int, rx: int, ry: int, rw: int, rh: int, rr:int) -> bool:
     """Check if a point (px, py) is inside a rectangle defined by (rx, ry, rw, rh) rotated by rr degrees."""
@@ -29,6 +38,7 @@ class Entity:
     speed: int
 
     def __init__(self, id: int, type: str, name: str, x: int, y: int, heading: int, speed: int):
+        from level import entityList
         self.id = id
         self.type = type
         self.name = name
@@ -36,17 +46,15 @@ class Entity:
         self.y = y
         self.heading = (360 - heading + 90) % 360
         self.speed = speed
+        entityList.append(self)
 
     def tick_update(self):
         # Position
         self.x += self.speed * math.cos(math.radians(self.heading))
         self.y += self.speed * math.sin(math.radians(self.heading))
 
-    def get_position(self):
-        return (self.x, self.y, self.heading)
-
     def __str__(self):
-        return f"{self.type} {self.name} at ({self.x}, {self.y}) heading {(360 + self.heading - 90) % 360}° with speed {self.speed}"
+        return f"{self.type} {self.name} at ({self.x}, {self.y}) heading {(360 - self.heading + 90) % 360}° with speed {self.speed}"
 
 # Base class for all ships
 class Ship(Entity):
@@ -59,8 +67,8 @@ class Ship(Entity):
     length: int
     width: int
     health_max: int                 # Maximum health of the ship
-    speed_max: int
-    speed_min: int
+    speed_max: int                  # Maximum speed of the ship
+    speed_min: int                  # Maximum speed of the ship reversing (positive value)
     speed_acceleration: int         # How fast the ship can reach its max speed
     speed_deceleration: int         # How fast the ship can slow down
     steer_max: int
@@ -73,14 +81,39 @@ class Ship(Entity):
     noise: int                      # Noise level of the ship, affects detection by enemies
     visibility: int
 
+    def __init__(self, id: int, type: str, name: str, x: int, y: int, heading: int, shipStat: list[int]):
+        super().__init__(id, type, name, x, y, heading, 0)
+        # Control attributes
+        self.throttle = 0
+        self.steer = 0
+        self.steer_target = 0
+
+        # Technical attributes
+        self.length = shipStat[0]
+        self.width = shipStat[1]
+        self.health_max = shipStat[2]
+        self.speed_max = shipStat[3]
+        self.speed_min = shipStat[4]
+        self.speed_acceleration = shipStat[5]
+        self.speed_deceleration = shipStat[6]
+        self.steer_max = shipStat[7]
+        self.steer_speed = shipStat[8]
+        self.base_visibility = shipStat[9]
+
+        # Status attributes
+        self.alive = True
+        self.health = self.health_max
+        self.noise = 0
+        self.visibility = self.base_visibility
+
     def tick_update(self):
         # Position and heading
         if self.speed >= 0:
             self.x += (self.speed + (self.length * 1/6 * self.speed/self.speed_max)) * math.cos(math.radians(self.heading))
             self.y += (self.speed + (self.length * 1/6 * self.speed/self.speed_max)) * math.sin(math.radians(self.heading))
         else:
-            self.x += (self.speed - (self.length * 1/6 * self.speed/self.speed_min)) * math.cos(math.radians(self.heading))
-            self.y += (self.speed - (self.length * 1/6 * self.speed/self.speed_min)) * math.sin(math.radians(self.heading))
+            self.x += (self.speed + (self.length * 1/6 * self.speed/self.speed_min)) * math.cos(math.radians(self.heading))
+            self.y += (self.speed + (self.length * 1/6 * self.speed/self.speed_min)) * math.sin(math.radians(self.heading))
         
         self.heading = (360 + self.heading + self.steer) % 360
 
@@ -88,20 +121,24 @@ class Ship(Entity):
             self.x += -(self.length * 1/6 * self.speed/self.speed_max) * math.cos(math.radians(self.heading))
             self.y += -(self.length * 1/6 * self.speed/self.speed_max) * math.sin(math.radians(self.heading))
         else:
-            self.x += (self.length * 1/6 * self.speed/self.speed_min) * math.cos(math.radians(self.heading))
-            self.y += (self.length * 1/6 * self.speed/self.speed_min) * math.sin(math.radians(self.heading))
+            self.x -= (self.length * 1/6 * self.speed/self.speed_min) * math.cos(math.radians(self.heading))
+            self.y -= (self.length * 1/6 * self.speed/self.speed_min) * math.sin(math.radians(self.heading))
             
         # Throttle and speed
-        if self.throttle > 0:
+        if self.throttle >= 0 and self.speed >= 0:
             if self.throttle > self.speed/self.speed_max * 100:
                 self.speed += self.speed_acceleration * (1.5 - self.speed/self.speed_max)
-            elif self.throttle < self.speed/self.speed_min * 100:
-                self.speed += self.speed_deceleration * (1.5 - self.speed/self.speed_min)
-        elif self.throttle < 0:
+                self.speed = min(self.speed, self.throttle*self.speed_max/100)
+            elif self.throttle < self.speed/self.speed_max * 100:
+                self.speed -= self.speed_deceleration * (1.5 - self.speed/self.speed_max)
+            self.speed = max(self.speed, 0)
+        elif self.throttle < 0 and self.speed < 0:
             if self.throttle < self.speed/self.speed_min * 100:
-                self.speed -= self.speed_deceleration * (1.5 - self.speed/self.speed_min)
-            elif self.throttle > self.speed/self.speed_max * 100:
-                self.speed -= self.speed_acceleration * (1.5 - self.speed/self.speed_max)
+                self.speed -= self.speed_acceleration * (1.5 - self.speed/-self.speed_min)
+                self.speed = max(self.speed, self.throttle*self.speed_min/100)
+            elif self.throttle > self.speed/self.speed_min * 100:
+                self.speed += self.speed_deceleration * (1.5 - self.speed/-self.speed_min)
+            self.speed = min(self.speed, 0)
 
         # Steer and heading
         if self.alive:
@@ -139,9 +176,55 @@ class torpedo(Ship):
     targetAngle: int                # Angle towards which the torpedo is heading
     targetSpeed: int                # Speed at which the torpedo is moving
 
+    # Status attributes
+    timeSinceShot: int              # Ticks since the torpedo has been shot
 
+    # Custom init
+    def __init__(self, id: int, x: int, y: int, heading: int, targetAngle: int, targetSpeed: int):
+        type = "torpedo"
+        name = "G7e Torpedo"
+
+        super().__init__(id, type, name, x, y, heading, torpedoStat)
+
+        self.damage = 5000
+
+        self.timeSinceShot = 0
+
+    # init for torpedo fired by the player ship
+    def __init__(self, id: int, targetAngle: int, targetSpeed: int, parentShip: Ship):
+        type = "torpedo"
+        name = "G7e Torpedo"
+        heading = (360 - parentShip.heading + 90) % 360
+        torpX = parentShip.x + parentShip.length * math.cos(math.radians(parentShip.heading))
+        torpY = parentShip.y + parentShip.length * math.sin(math.radians(parentShip.heading))
+
+        super().__init__(id, type, name, torpX, torpY, heading, torpedoStat)
+
+        self.targetAngle = targetAngle
+        self.targetSpeed = targetSpeed
+
+        self.speed = parentShip.speed
+        self.throttle = (self.targetSpeed/self.speed_max) * 100
+        self.damage = 5000
+
+        self.timeSinceShot = 0
+
+    def destroy(self):
+        from level import entityList
+        entityList.remove(self)
+
+    def check_attack(self):
+        from level import entityList
+        for entity in entityList:
+            if entity != self and math.sqrt((entity.x - self.s)**2 + (entity.y - self.y)**2) < 500 and point_in_rect(self.x, self.y, entity.x, entity.y, entity.width, entity.length, entity.heading):
+                entity.take_damage(self.damage)
+                self.destroy()
 
     def tick_update(self):
+        self.timeSinceShot += 1
+        if self.timeSinceShot >= 180:
+            self.destroy()
+            return
         if self.targetAngle - self.heading < -180 or self.targetAngle - self.heading > 180:
             if self.targetAngle - self.heading < -180:
                 self.steer_target = ((self.targetAngle + 360) - self.heading)
@@ -153,7 +236,8 @@ class torpedo(Ship):
             self.steer_target = self.steer_max
         elif self.steer_target < -self.steer_max:
             self.steer_target = -self.steer_max
-        super().tick_update(self)
+        super().tick_update()
+        self.check_attack()
 
 # Class for the player-controlled ship
 class playerShip(Ship):
@@ -171,6 +255,40 @@ class playerShip(Ship):
     battery: int                    # Battery level of the player ship, required for submerging
     periscope_active: bool          # Whether the periscope is currently active, affects visibility
 
+    # Combat attributes
+    torpedo_tubes: int              # The number of torpedo tubes to fire at once
+    torpedo_time_reload: int        # Time it takes to reload the torpedoes
+    torpedo_tube_lastFired: list[int]     # Time since the last torpedo was fired
+    torpedo_tube_targetAngle: list[int]   # Angle the torpedo from this tube will be turn towards
+    torpedo_tube_targetSpeed: list[int]   # Speed the torpedo from this tube will accelerate towards
+
+    def __init__(self, id: int, x: int, y: int, heading: int):
+        type = "playerShip"
+        name = "U-Boat Type VII"
+
+        super().__init__(id, type, name, x, y, heading, playerShipStat)
+
+        # Control attributes
+        self.periscope_angle = heading # Periscope angle starts at the ship's heading
+
+        # Technical attributes
+        self.battery_max = playerSubmarineStat[0]
+        self.battery_depletion_rate = playerSubmarineStat[1]
+        self.battery_recharge_rate = playerSubmarineStat[2]
+        self.underwater_speed_mult = playerSubmarineStat[3]
+
+        # Status attributes
+        self.depth = "surface"
+        self.battery = self.battery_max
+        self.periscope_active = False
+
+        # Torpedo
+        self.torpedo_tubes = playerSubmarineStat[4]
+        self.torpedo_time_reload = playerSubmarineStat[5]
+        self.torpedo_tube_lastFired = [0] * self.torpedo_tubes
+        self.torpedo_tube_targetAngle = [0] * self.torpedo_tubes
+        self.torpedo_tube_targetSpeed = [5] * self.torpedo_tubes
+
     def tick_update(self):
         # Speed
         temp_speed = self.speed_max
@@ -187,9 +305,9 @@ class playerShip(Ship):
             self.depth = "surface"
             self.periscope_active = False
 
-        super().tick_update(self)
+        super().tick_update()
 
-        # Periscope# Visiblity and noise
+        # Visiblity and noise
         match self.depth:
             case "surface":
                 self.visibility = self.base_visibility * ((abs(self.speed) / self.speed_max) / 2 + 0.5)
@@ -202,8 +320,20 @@ class playerShip(Ship):
                 self.visibility = 0
                 self.noise = self.noise * 0.5  # Reduced noise when deep
 
+        # Torpedo
+        for tube_lastFired in self.torpedo_tube_lastFired:
+            if tube_lastFired > 0:
+                tube_lastFired -= 1
+
         # Speed
         self.speed_max = temp_speed
+    
+    def attack_torpedo(self, tube: int):
+        from level import entityList
+        if self.torpedo_tube_lastFired[tube] > 0:
+            return
+        torpedo(len(entityList), self.torpedo_tube_targetAngle[tube], self.torpedo_tube_targetSpeed[tube], self)
+        self.torpedo_tube_lastFired[tube] = self.torpedo_time_reload  # Reset the reload time
 
 # Base class for enemy ships
 class enemyShip(Ship):
@@ -310,8 +440,44 @@ class destroyer(enemyShip):
     depthCharge_stack_dropped: list[depthCharge]  # List of depth charges that have been dropped
     hedgehog_time_lastFired: int    # Time when the last hedgehog was fired
 
+    def __init__(self, id: int, x: int, y: int, heading: int, destroyerWeaponStat: list[list[int]]):
+        type = "destroyer"
+        name = "Fletcher-class"
+
+        super().__init__(id, type, name, x, y, heading, destroyerShipStat)
+
+        # Predefined attributes
+        self.gun_time_lastFired = 0
+        self.depthCharge_time_lastDropped = 0
+        self.hedgehog_time_lastFired = 0
+
+        # Imported attributes
+            # Gun
+        self.has_gun = len(destroyerWeaponStat[0]) == 4
+        self.gun_range = destroyerWeaponStat[0][0]
+        self.gun_damage = destroyerWeaponStat[0][1]
+        self.gun_time_reload = destroyerWeaponStat[0][2]
+        self.gun_accuracy = destroyerWeaponStat[0][3]
+            # Depth charge
+        self.has_depthCharge =len(destroyerWeaponStat[1]) == 8
+        self.depthCharge_splash_radius = destroyerWeaponStat[1][0]
+        self.depthCharge_damage = destroyerWeaponStat[1][1]
+        self.depthCharge_time_reload = destroyerWeaponStat[1][2]
+        self.depthCharge_burst_amount = destroyerWeaponStat[1][3]
+        self.depthCharge_burst_interval = destroyerWeaponStat[1][4]
+        self.depthCharge_pattern = destroyerWeaponStat[1][5]
+        self.depthCharge_pattern_size = destroyerWeaponStat[1][6]
+        self.depthCharge_explosion_time = destroyerWeaponStat[1][7]
+            # Hedgehog
+        self.has_hedgehog = len(destroyerWeaponStat[2]) == 5
+        self.hedgehog_range = destroyerWeaponStat[2][0]
+        self.hedgehog_damage = destroyerWeaponStat[2][1]
+        self.hedgehog_time_reload = destroyerWeaponStat[2][2]
+        self.hedgehog_burst_amount = destroyerWeaponStat[2][3]
+        self.hedgehog_pattern_size = destroyerWeaponStat[2][4]
+
     def tick_update(self):
-        super().tick_update(self)
+        super().tick_update()
 
         # Gun
         if self.has_gun and self.gun_time_lastFired > 0:
@@ -406,3 +572,14 @@ class transport(enemyShip):
     cargo_type: str                 # Type of cargo the transport is carrying
     cargo_amount: int               # Amount of cargo the transport is carrying
     cargo_value: int                # Value of the cargo, affects score when destroyed
+
+    def __init__(self, id: int, x: int, y: int, heading: int, cargoType: str, cargoAmount: int, cargoValue: int):
+        type = "transport"
+        name = "Liberty ship"
+
+        super().__init__(id, type, name, x, y, heading, transportShipStat)
+
+        # Cargo attributes
+        self.cargo_type = cargoType
+        self.cargo_amount = cargoAmount
+        self.cargo_value = cargoValue
