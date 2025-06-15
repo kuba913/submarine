@@ -3,7 +3,7 @@ from random import random
 
 # Predefined ship statistics
 # 0 - Length, 1 - Width, 2 - Health, 3 - Speed Max, 4 - Speed Min, # 5 - Speed Acceleration, 6 - Speed Deceleration, 7 - Steer Max, 8 - Steer Speed, 9 - Base Visibility
-torpedoStat = [5, 1, 100, 25, 1, 5, 1, 5, 5, 500]  # Example stats for torpedo
+torpedoStat = [5, 1, 100, 25, 1, 5, 1, 15, 15, 500]  # Example stats for torpedo
 playerShipStat = [67, 6, 1000, 9, 3, 1, 1, 15, 3, 3000]  # Example stats for player ship
 destroyerShipStat = [115, 12, 2500, 18, 2, 1, 10, 2, 8000] # Example stats for destroyer
 transportShipStat = [135, 17, 5000, 6, 2, 1, 1, 5, 1, 12000] # Example stats for transport ship
@@ -18,7 +18,7 @@ def point_in_rect(px: int, py: int, rx: int, ry: int, rw: int, rh: int, rr:int) 
     translated_y = py - ry
 
     # Rotate point back to axis-aligned coordinates
-    angle_rad = math.radians(-rr)
+    angle_rad = math.radians(-rr-90)
     rotated_x = translated_x * math.cos(angle_rad) - translated_y * math.sin(angle_rad)
     rotated_y = translated_x * math.sin(angle_rad) + translated_y * math.cos(angle_rad)
 
