@@ -1,7 +1,11 @@
 import pygame
 import os
+import random as rand
+import math
+import copy
 
 MAX_OPTION = 3  # Max option number in the main menu (from 0 to 3).
+MAX_BUBBLES = 10 # Max amount of bubbles (from bubble animation) on menu screen.
 
 # Return values: First value returns False when whole game is meant to stop running (sets running = False (in "main.py" game loop)).
 #                Second value returns "gamestate" chosen by player in menu.
@@ -15,7 +19,7 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
         "Settings",
         "Quit Game"
     ]
-    # Maybe change options to some kind of enums instead (remove this comment later).
+    # Idea: Maybe change options to some kind of enums instead (remove this comment later).
 
     screen_width, screen_height = screen.get_size()
 
@@ -45,10 +49,18 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
     
     # Submarine "arrow" select indicator image loading
     base_path = os.path.abspath(os.path.dirname(__file__))
-    img_path = os.path.join(base_path, "assets", "img", "option_selector_ship.png")
-    #option_select = pygame.image.load("/os.path.dirname(__file__) + assets/img/option_selector_ship.png")
-    option_select = pygame.image.load(img_path)
+    imgs_path = os.path.join(base_path, "assets", "img")
+    ship_img_path = os.path.join(imgs_path, "option_selector_ship.png")
+    option_select = pygame.image.load(ship_img_path)
     option_select = pygame.transform.scale(option_select, (100, 57))
+
+    # Bubble image loading
+    bubble_img_path = os.path.join(imgs_path, "bubble.png")
+    bubble = pygame.image.load(bubble_img_path)
+    bubble = pygame.transform.scale(bubble, (29, 29))
+    bubbles = {}
+
+    rand.seed()
 
     menu_running = True
     while menu_running:
@@ -78,15 +90,37 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
         # Fill the screen with black
         screen.fill((0, 0, 0))
 
-        #Printing Main Menu
+        # Bubbles animation and printing logic
+        if len(bubbles) < MAX_BUBBLES:
+            left_to_max = range(MAX_BUBBLES-len(bubbles)) # How many more bubbles we can add before reaching the MAX_BUBBLES limit.
+            for i in left_to_max:
+                if rand.randint(1, 200) == 1: # Chance of spawning per frame (0.5% chance).
+                    bubbles.update({
+                        rand.randint(screen_width//3, (screen_width//3)*2) : screen_height
+                    })
+        new_bubbles = {}
+        for key in bubbles:
+            screen.blit(bubble, (key, bubbles[key])) # x and y pair.
+            if bubbles[key] > -29:
+            # If upper-left corner of bubble still isn't 29 pixels or more above the visible screen surface
+                new_bubbles[key + math.sin(bubbles[key] / (screen_height / 11)) * 3] = bubbles[key] - 1
+                # Then use the previous bubble coordinates updated by value from dedicated sinus function for the next frame.
+            # Otherwise this bubble will be cleared and the new will spawn in its place from the bottom of the menu screen during next frame.
+        bubbles.clear()
+        bubbles = copy.deepcopy(new_bubbles)
+
+        # Printing Menu text
+
+        # Printing "Main Menu" header text
         screen.blit(main_menu_text_render, main_menu_text_rect)
 
+        # Printing options text
         option_count = 0
         for option in option_text_rects:
             screen.blit(option_text_renders[option_count], option_text_rects[option_count])
             option_count += 1
 
-        #Printing select indicator
+        # Printing select indicator
         screen.blit(option_select, (screen_width * 0.15, ((screen_height//6) * (selected_option+2)) - ((screen_height//13) // (screen_height/480))))
         
         pygame.display.flip()
