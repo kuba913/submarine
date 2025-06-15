@@ -216,7 +216,7 @@ class torpedo(Ship):
     def check_attack(self):
         from level import entityList
         for entity in entityList:
-            if entity != self and math.sqrt((entity.x - self.s)**2 + (entity.y - self.y)**2) < 500 and point_in_rect(self.x, self.y, entity.x, entity.y, entity.width, entity.length, entity.heading):
+            if entity != self and math.sqrt((entity.x - self.y)**2 + (entity.y - self.y)**2) < 500 and point_in_rect(self.x, self.y, entity.x, entity.y, entity.width, entity.length, entity.heading):
                 entity.take_damage(self.damage)
                 self.destroy()
 

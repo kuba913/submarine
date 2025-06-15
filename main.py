@@ -23,7 +23,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Submarine")
 
 tick = 0
-tickPerLoop = 12
+tickPerLoop = 60
 
 # Game loop
 gamestate = "menu"
