@@ -1,18 +1,25 @@
 import pygame
 import level
+import menu
+
+# Idea: Maybe make separate .py file for settings...
+# (among others: passing values to menu function wouldn't be needed)...
+# Screen settings
+SCREEN_HEIGHT = 480
+SCREEN_WIDTH = 640
 
 # Debug settings
 debugText = True
-debugInstaGame = True
+debugInstaGame = False
 debugBasicDraw = True
 
 # Game loop settings
-fps = 12
+fps = 60
 
 # Initialize Pygame
 pygame.init()
 clock = pygame.time.Clock()
-screen = pygame.display.set_mode((1000, 500))
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Submarine")
 
 tick = 0
@@ -33,7 +40,7 @@ while running:
     match gamestate:
         case "menu":
             # Menu logic
-            pass
+            running, gamestate = menu.menu(screen, clock, fps)
         case "game":
             # Game logic
             if tick == 0:
@@ -43,9 +50,6 @@ while running:
     # Event handling
     for event in pygame.event.get():
         match gamestate:
-            case "menu":
-                # Menu events
-                pass
             case "game":
                 # Game events
                 if event.type == pygame.KEYDOWN:
@@ -66,9 +70,6 @@ while running:
 
     # Drawing
     match gamestate:
-        case "menu":
-            # Draw menu
-            pass
         case "game":
             # Draw game
             if debugBasicDraw:
