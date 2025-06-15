@@ -3,10 +3,10 @@ from random import random
 
 # Predefined ship statistics
 # 0 - Length, 1 - Width, 2 - Health, 3 - Speed Max, 4 - Speed Min, # 5 - Speed Acceleration, 6 - Speed Deceleration, 7 - Steer Max, 8 - Steer Speed, 9 - Base Visibility
-torpedoStat = [5, 1, 100, 25, 1, 5, 1, 1, 1, 500]  # Example stats for torpedo
+torpedoStat = [5, 1, 100, 25, 1, 5, 1, 5, 5, 500]  # Example stats for torpedo
 playerShipStat = [67, 6, 1000, 9, 3, 1, 1, 15, 3, 3000]  # Example stats for player ship
-destroyerShipStat = [] # Example stats for destroyer
-transportShipStat = [] # Example stats for transport ship
+destroyerShipStat = [115, 12, 2500, 18, 2, 1, 10, 2, 8000] # Example stats for destroyer
+transportShipStat = [135, 17, 5000, 6, 2, 1, 1, 5, 1, 12000] # Example stats for transport ship
 # 0 - Battery Max, 1 - Battery Depletion Rate, 2 - Battery Recharge Rate, 3 - Underwater Speed Multiplier 4 - Torpedo Tube Amount 5 - Torpedo Reload Time
 playerSubmarineStat = [1000, 1, 2, 0.5, 4, 60]  # Example stats for player submarine
 
@@ -216,9 +216,12 @@ class torpedo(Ship):
     def check_attack(self):
         from level import entityList
         for entity in entityList:
-            if entity != self and math.sqrt((entity.x - self.y)**2 + (entity.y - self.y)**2) < 500 and point_in_rect(self.x, self.y, entity.x, entity.y, entity.width, entity.length, entity.heading):
-                entity.take_damage(self.damage)
-                self.destroy()
+            if entity != self and math.sqrt((entity.x - self.y)**2 + (entity.y - self.y)**2) < 500:
+                for i in range(-round(self.speed)+math.floor(self.length/2),math.ceil(self.length/2)):
+                    if(point_in_rect(self.x + i*math.cos(math.radians(self.heading)), self.y + i*math.sin(math.radians(self.heading)), entity.x, entity.y, entity.width, entity.length, entity.heading)):
+                        entity.take_damage(self.damage)
+                        self.destroy()
+                        return
 
     def tick_update(self):
         self.timeSinceShot += 1
@@ -232,6 +235,8 @@ class torpedo(Ship):
                 self.steer_target = ((self.targetAngle - 360) - self.heading)
         else:
             self.steer_target = (self.targetAngle - self.heading)
+        if abs(self.steer_target) <= self.steer_max and self.steer != 0: # Temp fix
+            self.steer_target = 0
         if self.steer_target > self.steer_max:
             self.steer_target = self.steer_max
         elif self.steer_target < -self.steer_max:
@@ -287,7 +292,7 @@ class playerShip(Ship):
         self.torpedo_time_reload = playerSubmarineStat[5]
         self.torpedo_tube_lastFired = [0] * self.torpedo_tubes
         self.torpedo_tube_targetAngle = [0] * self.torpedo_tubes
-        self.torpedo_tube_targetSpeed = [5] * self.torpedo_tubes
+        self.torpedo_tube_targetSpeed = [torpedoStat[3]] * self.torpedo_tubes
 
     def tick_update(self):
         # Speed
