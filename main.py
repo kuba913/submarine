@@ -1,17 +1,20 @@
 import pygame
 import level
 import menu
+import gameui
+import settings
 
 # Idea: Maybe make separate .py file for settings...
 # (among others: passing values to menu function wouldn't be needed)...
 # Screen settings
-SCREEN_HEIGHT = 480
-SCREEN_WIDTH = 640
+# SCREEN_HEIGHT = 880
+# SCREEN_WIDTH = 1024
 
 # Debug settings
 debugText = True
 debugInstaGame = False
-debugBasicDraw = True
+debugBasicDraw = False
+debugKeyboardSteering = True
 
 # Game loop settings
 fps = 60
@@ -19,7 +22,7 @@ fps = 60
 # Initialize Pygame
 pygame.init()
 clock = pygame.time.Clock()
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
 pygame.display.set_caption("Submarine")
 
 tick = 0
@@ -53,7 +56,9 @@ while running:
             case "game":
                 # Game events
                 if event.type == pygame.KEYDOWN:
-                    if debugBasicDraw == True:
+                    if event.key == pygame.K_ESCAPE:
+                        gameui.switch_screen(gameui.UIScreen.PANEL)
+                    if debugKeyboardSteering:
                         if event.key == pygame.K_w:
                             level.playerShip.throttle = min(level.playerShip.throttle+10, 100)
                         if event.key == pygame.K_s:
@@ -75,6 +80,8 @@ while running:
             if debugBasicDraw:
                 screen.fill((0, 0, 0))
                 level.debugDrawLevel(screen)
+            else:
+                gameui.draw_ui(screen)
             pass
 
     # Display update
