@@ -34,6 +34,7 @@ running = True
 
 if debugInstaGame:
     gamestate = "game"
+    level.loadSave("test.p")
 
 while running:
     # Tick management
