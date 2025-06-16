@@ -103,11 +103,23 @@ img_location_periscope = BoundingBox2D(Vec2(900, 100) * SCREEN_SCALING_RATIO, Ve
 img_locaton_throttle_up = BoundingBox2D(Vec2(894, 1020) * SCREEN_SCALING_RATIO, Vec2(948, 1090) * SCREEN_SCALING_RATIO)
 img_location_throttle_down = BoundingBox2D(Vec2(894, 1100) * SCREEN_SCALING_RATIO, Vec2(948, 1180) * SCREEN_SCALING_RATIO)
 
-bg_img = pygame.image.load(os.path.join("assets", "img", "submarine_main_bg.png"))
+# Absolute path to a current file.
+base_path = os.path.abspath(os.path.dirname(__file__))
+# assets/img/
+imgs_path = os.path.join(base_path, "assets", "img")
+# Images full paths (with file names now)
+bg_img_path = os.path.join(imgs_path, "submarine_main_bg.png")
+throttler_img_path = os.path.join(imgs_path, "throttler.png")
+wheel_img_path = os.path.join(imgs_path, "wheel.png")
+# Images load and scale
+# Background image
+bg_img = pygame.image.load(bg_img_path)
 bg_img = pygame.transform.scale_by(bg_img, SCREEN_SCALING_RATIO)
-throttler_img = pygame.image.load(os.path.join("assets", "img", "throttler.png"))
+# Throttler image
+throttler_img = pygame.image.load(throttler_img_path)
 throttler_img = pygame.transform.scale_by(throttler_img, SCREEN_SCALING_RATIO / 2)
-wheel_img = pygame.image.load(os.path.join("assets", "img", "wheel.png"))
+# Wheel image
+wheel_img = pygame.image.load(wheel_img_path)
 wheel_img = pygame.transform.scale_by(wheel_img, SCREEN_SCALING_RATIO)
 
 wheel_size = wheel_img.get_size()
