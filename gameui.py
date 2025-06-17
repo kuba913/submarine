@@ -332,29 +332,44 @@ throttle_per_sec = 6  # Base throttle change per second
 def update_ship_throttle(coefficient, target_max_throttle, target_min_throttle=-20):
     # ! Hardcoded 60 FPS, may need to change to delta time.
     currentThrottle = level.playerShip.throttle
-    if coefficient != 0:
-        # keep accelerating til we reach the target throttle
-        if coefficient > 0 and currentThrottle < target_max_throttle:
+    if coefficient > 0:
+        # Accelerate towards target_max_throttle, or slow down if above it
+        if currentThrottle < target_max_throttle:
             level.playerShip.throttle += coefficient * throttle_per_sec * 1/60
-        # keep decelerating til we reach the target throttle
-        elif coefficient < 0 and currentThrottle > target_min_throttle:
+            if level.playerShip.throttle > target_max_throttle:
+                level.playerShip.throttle = target_max_throttle
+        elif currentThrottle > target_max_throttle:
+            # Slow down if above target_max_throttle
+            level.playerShip.throttle -= throttle_per_sec * 1.5 * 1/60
+            if level.playerShip.throttle < target_max_throttle:
+                level.playerShip.throttle = target_max_throttle
+        else:
+            level.playerShip.throttle = target_max_throttle
+    elif coefficient < 0:
+        # Decelerate towards target_min_throttle
+        if currentThrottle > target_min_throttle:
             level.playerShip.throttle += coefficient * throttle_per_sec * 1/60
-    # else slow down to 0
+            if level.playerShip.throttle < target_min_throttle:
+                level.playerShip.throttle = target_min_throttle
+        else:
+            level.playerShip.throttle = target_min_throttle
     else:
-        if currentThrottle < 0:
+        # Slow down to 0
+        if abs(currentThrottle) <= 0.16:
+            level.playerShip.throttle = 0
+        elif currentThrottle < 0:
             level.playerShip.throttle += throttle_per_sec * 1.5 * 1/60
+            if level.playerShip.throttle > 0:
+                level.playerShip.throttle = 0
         else:
             level.playerShip.throttle -= throttle_per_sec * 1.5 * 1/60
-
-    # Clamp the throttle to the range [target_min_throttle, target_max_throttle]
-    level.playerShip.throttle = max(min(level.playerShip.throttle, target_max_throttle), target_min_throttle)
-    if abs(level.playerShip.throttle) < 0.15 and coefficient == 0:  # If throttle is very close to 0, set it to 0
-        level.playerShip.throttle = 0
+            if level.playerShip.throttle < 0:
+                level.playerShip.throttle = 0
 
 def draw_ui(screen):
     screen.fill((0,0,0))
     global current_screen
-    update_ship_throttle(throttler.get_value(), 80)
+    update_ship_throttle(throttler.get_value(), 40 * throttler.get_value())
     #update_ship_steering(wheel.get_value())
     match current_screen:
         case UIScreen.PANEL:
