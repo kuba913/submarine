@@ -1,6 +1,7 @@
 import pygame
 import os
 import level
+import periscopeui
 from settings import SCREEN_SCALING_RATIO
 from enum import Enum
 
@@ -125,7 +126,7 @@ class Button:
 pygame.font.init()
 gameui_font = pygame.font.SysFont('Comic Sans MS', 18)
 gameui_font_16 = pygame.font.SysFont('Comic Sans MS', 16)
-current_screen = UIScreen.PANEL
+current_screen = UIScreen.PERISCOPE
 img_location_radar = BoundingBox2D(Vec2(820, 1300) * SCREEN_SCALING_RATIO, Vec2(1080, 1550) * SCREEN_SCALING_RATIO)
 img_location_steer_left = BoundingBox2D(Vec2(330, 1060) * SCREEN_SCALING_RATIO, Vec2(475, 1300) * SCREEN_SCALING_RATIO)
 img_location_steer_right = BoundingBox2D(Vec2(520, 1060) * SCREEN_SCALING_RATIO, Vec2(650, 1300) * SCREEN_SCALING_RATIO)
@@ -285,7 +286,7 @@ def draw_stats(screen):
     """Draw the stats of the player ship on the screen."""
     stats = [
         f"Throttle: {level.playerShip.throttle:.2f}",
-        f"Heading: {level.playerShip.steer_target:.2f}",
+        f"Heading: {level.playerShip.heading:.2f}°",
         f"Depth: {level.playerShip.depth}",
     ]
     
@@ -308,6 +309,8 @@ def handle_panel_ui(screen):
                 level.playerShip.steer_target = max(level.playerShip.steer_target-2, -level.playerShip.steer_max)
             elif input_type == InputType.RADAR:
                 switch_screen(UIScreen.TOPDOWN)
+            elif input_type == InputType.PERISCOPE:
+                switch_screen(UIScreen.PERISCOPE)
             elif input_type == InputType.PERISCOPE:
                 print("Periscope clicked")
             elif input_type == InputType.THROTTLE_FULL:
@@ -380,6 +383,8 @@ def draw_ui(screen):
             handle_panel_ui(screen)
         case UIScreen.TOPDOWN:
             level.debugDrawLevel(screen)
+        case UIScreen.PERISCOPE:
+            periscopeui.draw_periscope(screen, level.playerShip.periscope_angle, 40, level.playerShip)
         
         
 
