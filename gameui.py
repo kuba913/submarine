@@ -215,11 +215,10 @@ def adjust_ship_param(ship, param, amount, min_value, max_value, idx):
     getattr(ship, param)[idx] = max(min(val, max_value), min_value)
 
 torpedo_buttons = []
-def launch_torpedo(ship, idx, selfbtn):
+def launch_torpedo(ship, idx):
+    ship.attack_torpedo(idx)
     if ship.torpedo_tube_targetSpeed[idx] > 0:
-        # Optionally disable the button after firing instead of removing it
-        if hasattr(selfbtn, 'disabled'):
-            selfbtn.disabled = True
+        torpedo_buttons[idx][4].disabled = True  # Disable the button after launching
     else:
         print(f"Torpedo {idx+1} cannot be launched due to speed being zero.")
 
@@ -248,7 +247,8 @@ def get_torpedo_buttons(amount):
 
         button_fire = Button(button_img, 0, 1, BoundingBox2D(
             Vec2(1750, 1426 + margin * idx) * SCREEN_SCALING_RATIO, Vec2(1750 + btn_size, (1426 + btn_size) + (margin * idx)) * SCREEN_SCALING_RATIO))
-        button_fire.on_clicked = lambda target: launch_torpedo(level.playerShip, target, button_fire)
+        button_fire.on_clicked = lambda target: launch_torpedo(level.playerShip, target)
+
         torpedo_buttons.append((button_angle_left, button_angle_right, button_speed_up, button_speed_down, button_fire))
         
     return torpedo_buttons
@@ -285,7 +285,7 @@ def draw_stats(screen):
     """Draw the stats of the player ship on the screen."""
     stats = [
         f"Throttle: {level.playerShip.throttle:.2f}",
-        f"Heading: {level.playerShip.steer:.2f}",
+        f"Heading: {level.playerShip.steer_target:.2f}",
         f"Depth: {level.playerShip.depth}",
     ]
     
@@ -365,6 +365,10 @@ def update_ship_throttle(coefficient, target_max_throttle, target_min_throttle=-
             level.playerShip.throttle -= throttle_per_sec * 1.5 * 1/60
             if level.playerShip.throttle < 0:
                 level.playerShip.throttle = 0
+
+def reset_buttons():
+    global torpedo_buttons
+    torpedo_buttons = []
 
 def draw_ui(screen):
     screen.fill((0,0,0))
