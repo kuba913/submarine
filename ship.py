@@ -5,7 +5,7 @@ import random
 # 0 - Length, 1 - Width, 2 - Health, 3 - Speed Max, 4 - Speed Min, # 5 - Speed Acceleration, 6 - Speed Deceleration, 7 - Steer Max, 8 - Steer Speed, 9 - Base Visibility
 torpedoStat = [5, 1, 100, 25, 1, 5, 1, 15, 15, 500]  # Example stats for torpedo
 playerShipStat = [67, 6, 1000, 9, 3, 1, 1, 15, 3, 3000]  # Example stats for player ship
-destroyerShipStat = [115, 12, 2500, 18, 6, 2, 1, 10, 2, 8000] # Example stats for destroyer
+destroyerShipStat = [115, 12, 2500, 10, 6, 1, 1, 10, 2, 8000] # Example stats for destroyer
 transportShipStat = [135, 17, 5000, 6, 2, 1, 1, 5, 1, 12000] # Example stats for transport ship
 # 0 - Battery Max, 1 - Battery Depletion Rate, 2 - Battery Recharge Rate, 3 - Underwater Speed Multiplier 4 - Torpedo Tube Amount 5 - Torpedo Reload Time
 playerSubmarineStat = [1000, 1, 2, 0.5, 4, 60]  # Example stats for player submarine
