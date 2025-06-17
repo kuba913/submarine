@@ -135,7 +135,9 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
                             gamestate = "game"
                     elif selected_option == 1: # Load Game
                         if is_main_menu:
-                            pass
+                            level.loadSave("savestate1.p")
+                            menu_running = False
+                            gamestate = "game"
                         elif is_level_select:
                             level.loadSave("level2.p") # Load level 2
                             menu_running = False
