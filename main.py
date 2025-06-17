@@ -50,8 +50,10 @@ while running:
                 level.updateLevel(debugText)  # Update the level and all entities
             pass
 
+
     # Event handling
-    for event in pygame.event.get():
+    events = pygame.event.get()
+    for event in events:
         match gamestate:
             case "game":
                 # Game events
@@ -69,6 +71,8 @@ while running:
                             level.playerShip.steer_target = max(level.playerShip.steer_target-1, -level.playerShip.steer_max)
                         if event.key == pygame.K_SPACE:
                             level.playerShip.attack_torpedo(0)
+                        if event.key == pygame.K_p:
+                            gamestate = "pause"
                 pass
         if event.type == pygame.QUIT:
             running = False
@@ -83,6 +87,12 @@ while running:
             else:
                 gameui.draw_ui(screen)
             pass
+        case "pause":
+            # Draw pause menu
+            gameui.draw_pause_screen(screen)
+            for event in events:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    gamestate = "game"
 
     # Display update
     clock.tick(fps)

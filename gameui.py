@@ -126,7 +126,8 @@ class Button:
 pygame.font.init()
 gameui_font = pygame.font.SysFont('Comic Sans MS', 18)
 gameui_font_16 = pygame.font.SysFont('Comic Sans MS', 16)
-current_screen = UIScreen.PERISCOPE
+gameui_font_48 = pygame.font.SysFont('Comic Sans MS', 48)
+current_screen = UIScreen.PANEL
 img_location_radar = BoundingBox2D(Vec2(820, 1300) * SCREEN_SCALING_RATIO, Vec2(1080, 1550) * SCREEN_SCALING_RATIO)
 img_location_steer_left = BoundingBox2D(Vec2(330, 1060) * SCREEN_SCALING_RATIO, Vec2(475, 1300) * SCREEN_SCALING_RATIO)
 img_location_steer_right = BoundingBox2D(Vec2(520, 1060) * SCREEN_SCALING_RATIO, Vec2(650, 1300) * SCREEN_SCALING_RATIO)
@@ -372,6 +373,12 @@ def update_ship_throttle(coefficient, target_max_throttle, target_min_throttle=-
 def reset_buttons():
     global torpedo_buttons
     torpedo_buttons = []
+
+def draw_pause_screen(screen):
+    screen.fill((0,0,0))
+    pause_text = gameui_font_48.render("Game Paused", True, (255, 255, 255))
+    pause_rect = pause_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+    screen.blit(pause_text, pause_rect)
 
 def draw_ui(screen):
     screen.fill((0,0,0))
