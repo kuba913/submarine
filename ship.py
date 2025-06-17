@@ -1,11 +1,11 @@
 import math
-from random import random
+import random
 
 # Predefined ship statistics
 # 0 - Length, 1 - Width, 2 - Health, 3 - Speed Max, 4 - Speed Min, # 5 - Speed Acceleration, 6 - Speed Deceleration, 7 - Steer Max, 8 - Steer Speed, 9 - Base Visibility
 torpedoStat = [5, 1, 100, 25, 1, 5, 1, 15, 15, 500]  # Example stats for torpedo
 playerShipStat = [67, 6, 1000, 9, 3, 1, 1, 15, 3, 3000]  # Example stats for player ship
-destroyerShipStat = [115, 12, 2500, 18, 2, 1, 10, 2, 8000] # Example stats for destroyer
+destroyerShipStat = [115, 12, 2500, 10, 6, 1, 1, 10, 2, 8000] # Example stats for destroyer
 transportShipStat = [135, 17, 5000, 6, 2, 1, 1, 5, 1, 12000] # Example stats for transport ship
 # 0 - Battery Max, 1 - Battery Depletion Rate, 2 - Battery Recharge Rate, 3 - Underwater Speed Multiplier 4 - Torpedo Tube Amount 5 - Torpedo Reload Time
 playerSubmarineStat = [1000, 1, 2, 0.5, 4, 60]  # Example stats for player submarine
@@ -456,6 +456,9 @@ class destroyer(enemyShip):
         self.depthCharge_time_lastDropped = 0
         self.hedgehog_time_lastFired = 0
 
+        self.depthCharge_stack_dropping = []
+        self.depthCharge_stack_dropped = []
+
         # Imported attributes
             # Gun
         self.has_gun = len(destroyerWeaponStat[0]) == 4
@@ -482,6 +485,7 @@ class destroyer(enemyShip):
         self.hedgehog_pattern_size = destroyerWeaponStat[2][4]
 
     def tick_update(self):
+        from level import get_player 
         super().tick_update()
 
         # Gun
@@ -508,6 +512,30 @@ class destroyer(enemyShip):
         # Hedgehog
         if self.has_hedgehog and self.hedgehog_time_lastFired > 0:
             self.hedgehog_time_lastFired -= 1
+
+        # Player check needed for ai_combat_behavior method.
+        player = get_player()
+        if player and player.alive:
+            self.ai_combat_behavior(player)    
+
+    def ai_combat_behavior(self, player: Ship):
+        # Step 1: Calculate direction to player
+        dx = player.x - self.x
+        dy = player.y - self.y
+        target_angle = math.degrees(math.atan2(dy, dx)) % 360  # [0, 360)
+        # Step 2: Adjust heading
+        angle_diff = (target_angle - self.heading + 360) % 360
+        if angle_diff > 180:
+            angle_diff -= 360  # Normalize to [-180, 180]
+        if abs(angle_diff) > self.steer_speed:
+            self.steer_target = max(-self.steer_max, min(self.steer_max, angle_diff))
+        # Step 3: Move forward
+        self.throttle = 100  # Max throttle to charge
+        # Step 4: Attack if in range and ready
+        if self.has_gun and self.gun_time_lastFired <= 0:
+            distance = math.sqrt(dx ** 2 + dy ** 2)
+            if distance <= self.gun_range:
+                self.attack_gun(player)
 
     # Gun functions
     def attack_gun(self, target: Ship):

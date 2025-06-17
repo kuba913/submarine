@@ -3,9 +3,32 @@ import os
 import random as rand
 import math
 import copy
+import level
 
 MAX_OPTION = 3  # Max option number in the main menu (from 0 to 3).
+MAX_LVL_SEL_SUBM_OPTION = 1 # Max option in level select submenu (from 0 to 1).
 MAX_BUBBLES = 10 # Max amount of bubbles (from bubble animation) on menu screen.
+
+"""
+#returns filename of chosen level to load:
+def level_select_submenu() -> str:
+
+    submenu_options = [
+        "Level 1",
+        "Level 2"
+    ]
+
+    screen_width, screen_height = screen.get_size()
+    submenu_running = True
+    while submenu_running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            elif event.type == pygame.KEYDOWN:
+"""
+#^ probably won't be used
+
+
 
 # Return values: First value returns False when whole game is meant to stop running (sets running = False (in "main.py" game loop)).
 #                Second value returns "gamestate" chosen by player in menu.
@@ -18,6 +41,11 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
         "Load Game",
         "Settings",
         "Quit Game"
+    ]
+
+    level_select_submenu_options = [
+        "Level 1",
+        "Level 2"
     ]
     # Idea: Maybe change options to some kind of enums instead (remove this comment later).
 
@@ -34,15 +62,27 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
     main_menu_text_render = font_menu.render("Main Menu", True, (255, 255, 255))  # White "Main Menu" text
     main_menu_text_rect = main_menu_text_render.get_rect(center=(screen_width//2, screen_height//6))
     # Center in 1/2 of width and 1/6 of window height.
+    # Rendering "Level Select" main header text on the top
+    level_select_text_render = font_menu.render("Level Select", True, (255, 255, 255))  # White "Level Select" text
+    level_select_text_rect = level_select_text_render.get_rect(center=(screen_width//2, screen_height//6))
 
+    #!Maybe delete reduntant (repeated) code lines later.
     # Rendeing options text logic
     option_count = 0
     option_text_renders = []
     option_text_rects = []
+    level_select_option_text_renders = []
+    level_select_option_text_rects = []
     for option in options:
         option_text_renders.append(font_option.render(option, True, (255, 255, 255)))
         option_text_rects.append(option_text_renders[option_count].get_rect(center=(screen_width//2, (screen_height//6)*(option_count+2))))
         # Centers of options in 1/2 of window width and spread across 2/6, 3/6, 4/6 and 5/6 of window heights.
+        option_count += 1
+    option_count = 0
+    for option in level_select_submenu_options:
+        level_select_option_text_renders.append(font_option.render(option, True, (255, 255, 255)))
+        level_select_option_text_rects.append(level_select_option_text_renders[option_count].get_rect(center=(screen_width//2, (screen_height//6)*(option_count+2))))
+        # Centers of options in 1/2 of window width and spread across 2/6 and 3/6 of window heights.
         option_count += 1
 
     selected_option = 0
@@ -63,6 +103,8 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
     rand.seed()
 
     menu_running = True
+    is_main_menu = True     #is main menu currently active/displayed
+    is_level_select = False #is level select submenu currently active/displayed
     while menu_running:
         for event in pygame.event.get():
             
@@ -72,20 +114,41 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_DOWN:
                     selected_option += 1
-                    selected_option %= (MAX_OPTION+1)
+                    if is_main_menu:
+                        selected_option %= (MAX_OPTION+1)
+                    elif is_level_select:
+                        selected_option %= (MAX_LVL_SEL_SUBM_OPTION+1)
                 elif event.key == pygame.K_UP:
                     selected_option -= 1
-                    if selected_option < 0: selected_option = MAX_OPTION
+                    if is_main_menu:
+                        if selected_option < 0: selected_option = MAX_OPTION
+                    if is_level_select:
+                        if selected_option < 0: selected_option = MAX_LVL_SEL_SUBM_OPTION
                 elif event.key == pygame.K_RETURN:
                     if selected_option == 0: # Level Select (Start Game, as of yet)
-                        menu_running = False
-                        gamestate = "game"
+                        if is_main_menu:
+                            is_level_select = True
+                            is_main_menu = False
+                        elif is_level_select:
+                            level.loadSave("level1.p") # Load level 1
+                            menu_running = False
+                            gamestate = "game"
                     elif selected_option == 1: # Load Game
-                        pass
+                        if is_main_menu:
+                            pass
+                        elif is_level_select:
+                            level.loadSave("level2.p") # Load level 2
+                            menu_running = False
+                            gamestate = "game"
                     elif selected_option == 2: # Settings
                         pass
                     elif selected_option == 3: # Quit Game
-                        return False
+                        if is_main_menu:
+                            return False
+                elif event.key == pygame.K_ESCAPE:
+                    is_main_menu = True
+                    is_level_select = False
+
 
         # Fill the screen with black
         screen.fill((0, 0, 0))
@@ -111,14 +174,24 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
 
         # Printing Menu text
 
-        # Printing "Main Menu" header text
-        screen.blit(main_menu_text_render, main_menu_text_rect)
+        # Printing header text
+        if is_main_menu:
+            # "Main Menu"
+            screen.blit(main_menu_text_render, main_menu_text_rect)
+        elif is_level_select:
+            # "Level Select"
+            screen.blit(level_select_text_render, level_select_text_rect)
 
-        # Printing options text
+        # Printing menu option texts
         option_count = 0
-        for option in option_text_rects:
-            screen.blit(option_text_renders[option_count], option_text_rects[option_count])
-            option_count += 1
+        if is_main_menu:
+            for option_text_rect in option_text_rects:
+                screen.blit(option_text_renders[option_count], option_text_rect)
+                option_count += 1
+        elif is_level_select:
+            for option_text_rect in level_select_option_text_rects:
+                screen.blit(level_select_option_text_renders[option_count], option_text_rect)
+                option_count += 1
 
         # Printing select indicator
         screen.blit(option_select, (screen_width * 0.15, ((screen_height//6) * (selected_option+2)) - ((screen_height//13) // (screen_height/480))))

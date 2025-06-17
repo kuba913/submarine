@@ -1,12 +1,19 @@
 import math
 import pygame
 import ship
+import pickle
+
+global entityList
+global playerShip
 
 entityList = [] # List of ships in level
 
-playerShip = ship.playerShip(len(entityList), x=0, y=0, heading=0)
-ship.transport(len(entityList), 50, 140, 90, "cargo", 1, 1)
-#ship.Entity(len(entityList), type="TestShip", name="Tester", x=0, y=0, heading=0, speed=5)
+# Used in ship.destoryerai_combat_behavior
+def get_player():
+    for entity in entityList:
+        if entity.type == "playerShip":
+            return entity
+    return None
 
 # Tick the level, updating all entities
 def updateLevel(debug):
@@ -14,6 +21,7 @@ def updateLevel(debug):
         print("Updating level with entities:")
         for entity in entityList:
             print(entity)
+            print("health: ", entity.health)
     for entity in entityList:
         entity.tick_update()
 
@@ -39,3 +47,14 @@ def debugDrawLevel(screen):
                     p4y = screen.get_height()/2 - (entity.y + pLen * math.sin(math.atan2(entity.width/2, -entity.length/2) + math.radians(entity.heading)))
 
                     pygame.draw.polygon(screen, (255, 255, 255), [[p1x, p1y], [p2x, p2y], [p3x, p3y], [p4x, p4y]])
+
+# Save/Load
+
+def saveLevel(entityList, saveName):
+    pickle.dump(entityList, open(saveName, "wb"))
+
+def loadSave(saveName):
+    global entityList
+    global playerShip
+    entityList = pickle.load(open(saveName, "rb"))
+    playerShip = get_player()
