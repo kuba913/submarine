@@ -80,7 +80,8 @@ while running:
                 screen.fill((0, 0, 0))
                 level.debugDrawLevel(screen)
             else:
-                gameui.draw_ui(screen)
+                if not gameui.draw_ui(screen, events):
+                    gamestate = "menu"
             pass
         case "pause":
             # Draw pause menu

@@ -9,7 +9,7 @@ def draw_ship(screen, location, size):
     rect = pygame.Rect(location[0] - width // 2, location[1] - height // 2, width, height)
     pygame.draw.rect(screen, (0, 128, 255), rect)
 
-def draw_periscope(screen, curr_ang, fov, my_ship):
+def draw_periscope(screen, events, curr_ang, fov, my_ship):
     screen_width, screen_height = screen.get_size()
 
     # Calculate the periscope view rectangle

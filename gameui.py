@@ -307,10 +307,10 @@ def draw_stats(screen):
         text_surface = gameui_font_16.render(stat, True, (255, 255, 255))
         screen.blit(text_surface, (img_location_stats.x, img_location_stats.y + i * 15))
 
-def handle_panel_ui(screen):
+def handle_panel_ui(screen, events):
     draw_bg(screen)
     is_mouse_down = pygame.mouse.get_pressed()[0]  # Check if the left mouse button is pressed
-    for event in pygame.event.get():
+    for event in events:
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
             input_type = check_input(mouse_pos)
@@ -392,18 +392,26 @@ def draw_pause_screen(screen):
     pause_rect = pause_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
     screen.blit(pause_text, pause_rect)
 
-def draw_ui(screen):
+def draw_ui(screen, events):
     screen.fill((0,0,0))
     global current_screen
     update_ship_throttle(throttler.get_value(), 40 * throttler.get_value())
     #update_ship_steering(wheel.get_value())
     match current_screen:
         case UIScreen.PANEL:
-            handle_panel_ui(screen)
+            handle_panel_ui(screen, events)
         case UIScreen.TOPDOWN:
             level.debugDrawLevel(screen)
         case UIScreen.PERISCOPE:
-            periscopeui.draw_periscope(screen, level.playerShip.periscope_angle, 40, level.playerShip)
+            periscopeui.draw_periscope(screen, events, level.playerShip.periscope_angle, 40, level.playerShip)
+    if level.playerShip.alive == False:
+        game_over_text = gameui_font_48.render("Your ship has been shot down!", True, (255, 0, 0))
+        game_over_rect = game_over_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+        screen.blit(game_over_text, game_over_rect)
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return False
+    return True
         
         
 
