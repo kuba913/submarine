@@ -11,8 +11,11 @@ class InputType(Enum):
     TORPEDO1 = "torpedo1"
     TORPEDO2 = "torpedo2"
     PERISCOPE = "periscope"
-    THROTTLE_UP = "throttle_up"
-    THROTTLE_DOWN = "throttle_down"
+    THROTTLE_SLOW = "throttle_slow"
+    THROTTLE_HALF = "throttle_half"
+    THROTTLE_FULL = "throttle_full"
+    THROTTLE_STOP = "throttle_stop"
+    THROTTLE_REV = "throttle_rev"
     NONE = "none"
 
 class UIScreen(Enum):
@@ -57,7 +60,7 @@ class Throttler:
         self.value = 0
 
     def up(self):
-        if self.value >= 1:
+        if self.value >= 3:
             return
         self.value += 1
 
@@ -65,6 +68,10 @@ class Throttler:
         if self.value <= -1:
             return
         self.value -= 1
+    def set(self, value):
+        if value < -1 or value > 3:
+            raise ValueError("Throttle value must be between -1 and 3")
+        self.value = value
     
     def reset(self):
         self.value = 0
@@ -102,17 +109,22 @@ class Button:
         self.image = pygame.transform.scale_by(self.image, self.scale)
         self.loc = Vec2(self.bounding_box.top_left.x, self.bounding_box.top_left.y)
         self.rect = self.image.get_rect(center=self.loc.to_tuple())
+        self.disabled = False  # Add a disabled attribute
 
     def draw(self, screen):
-        screen.blit(self.image, self.rect)
+        if not self.disabled:
+            screen.blit(self.image, self.rect)
     
     def check_clicked(self, mouse_pos):
+        if self.disabled:
+            return False
         pos = Vec2(mouse_pos[0], mouse_pos[1])
         return self.bounding_box.contains(pos)
     
 
 pygame.font.init()
 gameui_font = pygame.font.SysFont('Comic Sans MS', 18)
+gameui_font_16 = pygame.font.SysFont('Comic Sans MS', 16)
 current_screen = UIScreen.PANEL
 img_location_radar = BoundingBox2D(Vec2(820, 1300) * SCREEN_SCALING_RATIO, Vec2(1080, 1550) * SCREEN_SCALING_RATIO)
 img_location_steer_left = BoundingBox2D(Vec2(330, 1060) * SCREEN_SCALING_RATIO, Vec2(475, 1300) * SCREEN_SCALING_RATIO)
@@ -120,8 +132,13 @@ img_location_steer_right = BoundingBox2D(Vec2(520, 1060) * SCREEN_SCALING_RATIO,
 img_location_torpedo1 = BoundingBox2D(Vec2(160, 880) * SCREEN_SCALING_RATIO, Vec2(300, 1160) * SCREEN_SCALING_RATIO)
 img_location_torpedo2 = BoundingBox2D(Vec2(694, 908) * SCREEN_SCALING_RATIO, Vec2(800, 1190) * SCREEN_SCALING_RATIO)
 img_location_periscope = BoundingBox2D(Vec2(900, 100) * SCREEN_SCALING_RATIO, Vec2(1040, 586) * SCREEN_SCALING_RATIO)
-img_locaton_throttle_up = BoundingBox2D(Vec2(894, 1020) * SCREEN_SCALING_RATIO, Vec2(948, 1090) * SCREEN_SCALING_RATIO)
-img_location_throttle_down = BoundingBox2D(Vec2(894, 1100) * SCREEN_SCALING_RATIO, Vec2(948, 1180) * SCREEN_SCALING_RATIO)
+
+img_locaton_throttle_full = BoundingBox2D(Vec2(860, 1064) * SCREEN_SCALING_RATIO, Vec2(956, 1084) * SCREEN_SCALING_RATIO)
+img_location_throttle_half = BoundingBox2D(Vec2(860, 1086) * SCREEN_SCALING_RATIO, Vec2(956, 1110) * SCREEN_SCALING_RATIO)
+img_location_throttle_slow = BoundingBox2D(Vec2(860, 1112) * SCREEN_SCALING_RATIO, Vec2(956, 1140) * SCREEN_SCALING_RATIO)
+img_location_throttle_stop = BoundingBox2D(Vec2(860, 1142) * SCREEN_SCALING_RATIO, Vec2(956, 1170) * SCREEN_SCALING_RATIO)
+img_location_throttle_rev = BoundingBox2D(Vec2(860, 1172) * SCREEN_SCALING_RATIO, Vec2(956, 1202) * SCREEN_SCALING_RATIO)
+img_location_stats = Vec2(1045, 875) * SCREEN_SCALING_RATIO
 
 bg_img = pygame.image.load(os.path.join("assets", "img", "submarine_main_bg.png"))
 bg_img = pygame.transform.scale_by(bg_img, SCREEN_SCALING_RATIO)
@@ -138,7 +155,7 @@ img_location_wheel = Vec2(494, 1180) * SCREEN_SCALING_RATIO
 
 throttler_size = throttler_img.get_size()
 throttler_size = Vec2(throttler_size[0], throttler_size[1])
-img_location_throttler = Vec2(922, 1090) * SCREEN_SCALING_RATIO - throttler_size / 2
+img_location_throttler = Vec2(970, 1160) * SCREEN_SCALING_RATIO - throttler_size / 2
 
 throttler = Throttler()
 wheel = Wheel()
@@ -167,10 +184,16 @@ def check_input(mouse_pos):
         return InputType.TORPEDO2
     elif img_location_periscope.contains(pos):
         return InputType.PERISCOPE
-    elif img_locaton_throttle_up.contains(pos):
-        return InputType.THROTTLE_UP
-    elif img_location_throttle_down.contains(pos):
-        return InputType.THROTTLE_DOWN
+    elif img_locaton_throttle_full.contains(pos):
+        return InputType.THROTTLE_FULL
+    elif img_location_throttle_half.contains(pos):
+        return InputType.THROTTLE_HALF
+    elif img_location_throttle_slow.contains(pos):
+        return InputType.THROTTLE_SLOW
+    elif img_location_throttle_stop.contains(pos):
+        return InputType.THROTTLE_STOP
+    elif img_location_throttle_rev.contains(pos):
+        return InputType.THROTTLE_REV
     else:
         return InputType.NONE
 
@@ -182,7 +205,7 @@ def draw_wheel(screen):
 
 def draw_throttler(screen):
     """Draw the throttler image on the screen."""
-    offset = throttler.get_value() * 20 * SCREEN_SCALING_RATIO  # Adjust the offset based on throttler value
+    offset = throttler.get_value() * 30 * SCREEN_SCALING_RATIO  # Adjust the offset based on throttler value
     location = img_location_throttler + Vec2(0, -offset)
     screen.blit(throttler_img, location.to_tuple())
 
@@ -192,6 +215,14 @@ def adjust_ship_param(ship, param, amount, min_value, max_value, idx):
     getattr(ship, param)[idx] = max(min(val, max_value), min_value)
 
 torpedo_buttons = []
+def launch_torpedo(ship, idx, selfbtn):
+    if ship.torpedo_tube_targetSpeed[idx] > 0:
+        # Optionally disable the button after firing instead of removing it
+        if hasattr(selfbtn, 'disabled'):
+            selfbtn.disabled = True
+    else:
+        print(f"Torpedo {idx+1} cannot be launched due to speed being zero.")
+
 def get_torpedo_buttons(amount):
     global torpedo_buttons
     if len(torpedo_buttons) > 0:
@@ -210,14 +241,14 @@ def get_torpedo_buttons(amount):
         button_angle_right.on_clicked = lambda target: adjust_ship_param(level.playerShip, 'torpedo_tube_targetAngle', 1, -180, 180, target)
         button_speed_up = Button(arrow_up_img, 0, 0.5, BoundingBox2D(
             Vec2(1860, 1426 + margin * idx) * SCREEN_SCALING_RATIO, Vec2(1860 + btn_size, (1426 + btn_size) + (margin * idx)) * SCREEN_SCALING_RATIO))
-        button_speed_up.on_clicked = lambda target: adjust_ship_param(level.playerShip, 'torpedo_tube_targetSpeed', 1, 15, 100, target)
+        button_speed_up.on_clicked = lambda target: adjust_ship_param(level.playerShip, 'torpedo_tube_targetSpeed', 1, 15, 60, target)
         button_speed_down = Button(arrow_up_img, 180, 0.5, BoundingBox2D(
             Vec2(1980, 1440 + margin * idx) * SCREEN_SCALING_RATIO, Vec2(1980 + btn_size, (1426 + btn_size) + (margin * idx)) * SCREEN_SCALING_RATIO))
-        button_speed_down.on_clicked = lambda target: adjust_ship_param(level.playerShip, 'torpedo_tube_targetSpeed', -1, 15, 100, target)
+        button_speed_down.on_clicked = lambda target: adjust_ship_param(level.playerShip, 'torpedo_tube_targetSpeed', -1, 15, 60, target)
 
         button_fire = Button(button_img, 0, 1, BoundingBox2D(
             Vec2(1750, 1426 + margin * idx) * SCREEN_SCALING_RATIO, Vec2(1750 + btn_size, (1426 + btn_size) + (margin * idx)) * SCREEN_SCALING_RATIO))
-        button_fire.on_clicked = lambda target: level.playerShip.attack_torpedo(target)
+        button_fire.on_clicked = lambda target: launch_torpedo(level.playerShip, target, button_fire)
         torpedo_buttons.append((button_angle_left, button_angle_right, button_speed_up, button_speed_down, button_fire))
         
     return torpedo_buttons
@@ -250,6 +281,18 @@ def draw_torpedo_screen(screen, is_mouse_down=False):
 
     draw_torpedo_settings(screen, is_mouse_down)
 
+def draw_stats(screen):
+    """Draw the stats of the player ship on the screen."""
+    stats = [
+        f"Throttle: {level.playerShip.throttle:.2f}",
+        f"Heading: {level.playerShip.steer:.2f}",
+        f"Depth: {level.playerShip.depth}",
+    ]
+    
+    for i, stat in enumerate(stats):
+        text_surface = gameui_font_16.render(stat, True, (255, 255, 255))
+        screen.blit(text_surface, (img_location_stats.x, img_location_stats.y + i * 15))
+
 def handle_panel_ui(screen):
     draw_bg(screen)
     is_mouse_down = pygame.mouse.get_pressed()[0]  # Check if the left mouse button is pressed
@@ -257,13 +300,7 @@ def handle_panel_ui(screen):
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
             input_type = check_input(mouse_pos)
-            if input_type == InputType.THROTTLE_UP:
-                throttler.up()
-                #level.playerShip.throttle = min(level.playerShip.throttle+10, 100)
-            elif input_type == InputType.THROTTLE_DOWN:
-                throttler.down()
-                #level.playerShip.throttle = max(level.playerShip.throttle-10, -100)
-            elif input_type == InputType.STEER_LEFT:
+            if input_type == InputType.STEER_LEFT:
                 wheel.left()
                 level.playerShip.steer_target = min(level.playerShip.steer_target+2, level.playerShip.steer_max)
             elif input_type == InputType.STEER_RIGHT:
@@ -271,49 +308,53 @@ def handle_panel_ui(screen):
                 level.playerShip.steer_target = max(level.playerShip.steer_target-2, -level.playerShip.steer_max)
             elif input_type == InputType.RADAR:
                 switch_screen(UIScreen.TOPDOWN)
-            elif input_type == InputType.TORPEDO1:
-                level.playerShip.attack_torpedo(0)
-                print("Torpedo 1 clicked")
-            elif input_type == InputType.TORPEDO2:
-                print("Torpedo 2 clicked")
             elif input_type == InputType.PERISCOPE:
                 print("Periscope clicked")
+            elif input_type == InputType.THROTTLE_FULL:
+                throttler.set(3)
+            elif input_type == InputType.THROTTLE_HALF:
+                throttler.set(2)
+            elif input_type == InputType.THROTTLE_SLOW:
+                throttler.set(1)
+            elif input_type == InputType.THROTTLE_STOP:
+                throttler.set(0)
+            elif input_type == InputType.THROTTLE_REV:
+                throttler.set(-1)
 
     draw_wheel(screen)
     draw_throttler(screen)
     draw_torpedo_screen(screen, is_mouse_down)
+    draw_stats(screen)
 
 # TODO move these to ship.py or similar
+throttle_per_sec = 6  # Base throttle change per second
 # How fast the ship throttles up/down when the lever is up/down
-throttle_per_sec = 10  # Throttle change per second
-def update_ship_throttle(coefficient):
+def update_ship_throttle(coefficient, target_max_throttle, target_min_throttle=-20):
     # ! Hardcoded 60 FPS, may need to change to delta time.
-    if coefficient == 0:
-        # Slowly return throttle to zero
-        if level.playerShip.throttle > 0:
-            level.playerShip.throttle -= throttle_per_sec * 1/60
-            if level.playerShip.throttle < 0:
-                level.playerShip.throttle = 0
-        elif level.playerShip.throttle < 0:
-            level.playerShip.throttle += throttle_per_sec * 1/60
-            if level.playerShip.throttle > 0:
-                level.playerShip.throttle = 0
+    currentThrottle = level.playerShip.throttle
+    if coefficient != 0:
+        # keep accelerating til we reach the target throttle
+        if coefficient > 0 and currentThrottle < target_max_throttle:
+            level.playerShip.throttle += coefficient * throttle_per_sec * 1/60
+        # keep decelerating til we reach the target throttle
+        elif coefficient < 0 and currentThrottle > target_min_throttle:
+            level.playerShip.throttle += coefficient * throttle_per_sec * 1/60
+    # else slow down to 0
     else:
-        level.playerShip.throttle += coefficient * throttle_per_sec * 1/60
+        if currentThrottle < 0:
+            level.playerShip.throttle += throttle_per_sec * 1.5 * 1/60
+        else:
+            level.playerShip.throttle -= throttle_per_sec * 1.5 * 1/60
 
-    level.playerShip.throttle = max(min(level.playerShip.throttle, 100), -100)
-
-# How fast does the ship turn left/right when the wheel is turned left/right
-steer_per_sec = 1  # Steering change per second
-def update_ship_steering(coefficient):
-    # ! Hardcoded 60 FPS, may need to change to delta time.
-    level.playerShip.steer_target += coefficient * 1 * 1/60
-    level.playerShip.steer_target = max(min(level.playerShip.steer_target, level.playerShip.steer_max), -level.playerShip.steer_max)
+    # Clamp the throttle to the range [target_min_throttle, target_max_throttle]
+    level.playerShip.throttle = max(min(level.playerShip.throttle, target_max_throttle), target_min_throttle)
+    if abs(level.playerShip.throttle) < 0.15 and coefficient == 0:  # If throttle is very close to 0, set it to 0
+        level.playerShip.throttle = 0
 
 def draw_ui(screen):
     screen.fill((0,0,0))
     global current_screen
-    update_ship_throttle(throttler.get_value())
+    update_ship_throttle(throttler.get_value(), 80)
     #update_ship_steering(wheel.get_value())
     match current_screen:
         case UIScreen.PANEL:
