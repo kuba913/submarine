@@ -10,15 +10,6 @@ entityList = [] # List of ships in level
 playerShip = None
 
 playerShip = ship.playerShip(len(entityList), x=0, y=0, heading=0)
-ship.transport(len(entityList), 50, 140, 90, "cargo", 1, 1)
-ship.destroyer(len(entityList), -300, 300, 45,
-    [[8000, 200, 4, 10],
-    [5, 500, 15, 2, 1, "behind", 5, 3],
-    [150, 500, 120, 24, 30]])
-ship.destroyer(len(entityList), -350, -270, 100,
-    [[8000, 200, 4, 10],
-    [5, 500, 15, 2, 1, "behind", 5, 3],
-    [150, 500, 120, 24, 30]])
 
 #ship.Entity(len(entityList), type="TestShip", name="Tester", x=0, y=0, heading=0, speed=5)
 
