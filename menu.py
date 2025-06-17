@@ -6,6 +6,7 @@ import copy
 import level
 
 MAX_OPTION = 3  # Max option number in the main menu (from 0 to 3).
+MAX_LVL_SEL_SUBM_OPTION = 1 # Max option in level select submenu (from 0 to 1).
 MAX_BUBBLES = 10 # Max amount of bubbles (from bubble animation) on menu screen.
 
 """
@@ -113,10 +114,16 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_DOWN:
                     selected_option += 1
-                    selected_option %= (MAX_OPTION+1)
+                    if is_main_menu:
+                        selected_option %= (MAX_OPTION+1)
+                    elif is_level_select:
+                        selected_option %= (MAX_LVL_SEL_SUBM_OPTION+1)
                 elif event.key == pygame.K_UP:
                     selected_option -= 1
-                    if selected_option < 0: selected_option = MAX_OPTION
+                    if is_main_menu:
+                        if selected_option < 0: selected_option = MAX_OPTION
+                    if is_level_select:
+                        if selected_option < 0: selected_option = MAX_LVL_SEL_SUBM_OPTION
                 elif event.key == pygame.K_RETURN:
                     if selected_option == 0: # Level Select (Start Game, as of yet)
                         if is_main_menu:
@@ -136,7 +143,8 @@ def menu(screen: pygame.Surface, clock: pygame.time.Clock, fps: int) -> tuple[bo
                     elif selected_option == 2: # Settings
                         pass
                     elif selected_option == 3: # Quit Game
-                        return False
+                        if is_main_menu:
+                            return False
                 elif event.key == pygame.K_ESCAPE:
                     is_main_menu = True
                     is_level_select = False
