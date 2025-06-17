@@ -4,12 +4,6 @@ import menu
 import gameui
 import settings
 
-# Idea: Maybe make separate .py file for settings...
-# (among others: passing values to menu function wouldn't be needed)...
-# Screen settings
-# SCREEN_HEIGHT = 880
-# SCREEN_WIDTH = 1024
-
 # Debug settings
 debugText = True
 debugInstaGame = False

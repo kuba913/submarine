@@ -7,11 +7,6 @@ global entityList
 global playerShip
 
 entityList = [] # List of ships in level
-playerShip = None
-
-playerShip = ship.playerShip(len(entityList), x=0, y=0, heading=0)
-
-#ship.Entity(len(entityList), type="TestShip", name="Tester", x=0, y=0, heading=0, speed=5)
 
 # Used in ship.destoryerai_combat_behavior
 def get_player():
