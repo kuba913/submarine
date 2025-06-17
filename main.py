@@ -69,6 +69,13 @@ while running:
                         if event.key == pygame.K_p:
                             gamestate = "pause"
                 pass
+            case "pause":
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE or event.key == pygame.K_q:
+                        gamestate = "game"
+                    if event.key == pygame.K_s:
+                        level.saveLevel(level.entityList, "savestate1.p")
+
         if event.type == pygame.QUIT:
             running = False
 
@@ -86,9 +93,6 @@ while running:
         case "pause":
             # Draw pause menu
             gameui.draw_pause_screen(screen)
-            for event in events:
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    gamestate = "game"
 
     # Display update
     clock.tick(fps)

@@ -390,7 +390,10 @@ def draw_pause_screen(screen):
     screen.fill((0,0,0))
     pause_text = gameui_font_48.render("Game Paused", True, (255, 255, 255))
     pause_rect = pause_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+    save_info_text = gameui_font_48.render("Press 's' to save the game", True, (255, 255, 255))
+    save_info_rect = save_info_text.get_rect(center=(screen.get_width() // 2, screen.get_height()*2 // 3))
     screen.blit(pause_text, pause_rect)
+    screen.blit(save_info_text, save_info_rect)
 
 def draw_ui(screen, events):
     screen.fill((0,0,0))
